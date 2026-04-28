@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "Tenant": {
+      "title": "Tenant",
+      "description": "Multi-tenant isolation for different producers.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "createdAt"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "Details of a large event.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "name": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["PLANNING", "ACTIVE", "COMPLETED"] },
+        "config": { "type": "object" }
+      },
+      "required": ["tenantId", "name", "startDate", "endDate", "status"]
+    },
+    "Contractor": {
+      "title": "Contractor",
+      "description": "Company hired for an event.",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "name": { "type": "string" },
+        "taxId": { "type": "string" },
+        "allowedStaffCount": { "type": "integer" },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "BLOCKED"] }
+      },
+      "required": ["eventId", "name", "taxId", "allowedStaffCount", "status"]
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "Individual worker registered for an event.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "eventId": { "type": "string" },
+        "contractorId": { "type": "string" },
+        "name": { "type": "string" },
+        "document": { "type": "string" },
+        "pin": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "faceTemplate": { "type": "string" },
+        "status": { "type": "string", "enum": ["DRAFT", "PENDING_APPROVAL", "APPROVED", "ACTIVE", "BLOCKED"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tenantId", "eventId", "contractorId", "name", "document", "pin", "status"]
+    },
+    "Device": {
+      "title": "Device",
+      "description": "ZKTeco hardware configuration.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "eventId": { "type": "string" },
+        "serialNumber": { "type": "string" },
+        "name": { "type": "string" },
+        "ip": { "type": "string" },
+        "lastPing": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["ONLINE", "OFFLINE"] },
+        "pushVersion": { "type": "string" }
+      },
+      "required": ["tenantId", "serialNumber", "name"]
+    },
+    "Command": {
+      "title": "Command",
+      "description": "Command to be sent to a ZKTeco device via PUSH protocol.",
+      "type": "object",
+      "properties": {
+        "deviceId": { "type": "string" },
+        "type": { "type": "string" },
+        "payload": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "SENT", "EXECUTED", "FAILED"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["deviceId", "type", "payload", "status", "createdAt"]
+    },
+    "AccessLog": {
+      "title": "AccessLog",
+      "description": "Access event record.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "eventId": { "type": "string" },
+        "deviceId": { "type": "string" },
+        "staffId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "type": { "type": "string" },
+        "result": { "type": "string" }
+      },
+      "required": ["tenantId", "eventId", "deviceId", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/tenants/{tenantId}": { "schema": "Tenant", "description": "Tenant documents." },
+    "/events/{eventId}": { "schema": "Event", "description": "Event documents." },
+    "/contractors/{contractorId}": { "schema": "Contractor", "description": "Contractor documents." },
+    "/staff/{staffId}": { "schema": "Staff", "description": "Staff documents." },
+    "/devices/{deviceId}": { "schema": "Device", "description": "Device documents." },
+    "/commands/{commandId}": { "schema": "Command", "description": "Pending commands." },
+    "/accessLogs/{logId}": { "schema": "AccessLog", "description": "Access logs." }
+  }
+}

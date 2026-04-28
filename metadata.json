@@ -1,0 +1,13 @@
+{
+  "name": "Controle de Acesso PRO",
+  "description": "Plataforma profissional para controle de acesso facial de trabalhadores e fornecedores em grandes eventos usando equipamentos ZKTeco.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "Identificação Facial",
+    "Gestão de Eventos",
+    "Protocolo ZKTeco PUSH/ADMS",
+    "Cadastro Multi-tenant"
+  ]
+}

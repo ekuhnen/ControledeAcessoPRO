@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'evandrosapiens@gmail.com'
+      );
+    }
+
+    // --- Entity Validations ---
+    
+    function isValidEvent(data) {
+      return data.keys().hasAll(['tenantId', 'name', 'status']) &&
+             data.name is string && data.name.size() <= 100 &&
+             data.status in ['PREPARING', 'PLANNING', 'ACTIVE', 'COMPLETED'];
+    }
+
+    function isValidContractor(data) {
+      return data.keys().hasAll(['eventId', 'name', 'taxId', 'allowedStaffCount', 'status']) &&
+             data.name is string && data.name.size() <= 100 &&
+             data.taxId is string && data.taxId.size() <= 20 &&
+             data.allowedStaffCount is int &&
+             data.status in ['PENDING', 'APPROVED', 'BLOCKED'];
+    }
+
+    function isValidStaff(data) {
+      return data.keys().hasAll(['tenantId', 'eventId', 'contractorId', 'name', 'document', 'pin', 'status']) &&
+             data.name is string && data.name.size() <= 100 &&
+             data.document is string && data.document.size() <= 20 &&
+             data.pin is string && data.pin.size() <= 10 &&
+             data.status in ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'ACTIVE', 'BLOCKED'];
+    }
+
+    // --- Rules ---
+
+    match /tenants/{tenantId} {
+      allow read: if isSignedIn() && (request.auth.uid == tenantId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    match /contractors/{contractorId} {
+      allow list, get: if true; // Public for portal access
+      allow create: if isSignedIn() && isValidContractor(incoming());
+      allow update: if isSignedIn() && isValidContractor(incoming());
+    }
+
+    match /staff/{staffId} {
+      allow list: if true;
+      allow get: if true;
+      allow create: if isValidStaff(incoming());
+      allow update: if isSignedIn() && isValidStaff(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'faceTemplate', 'photoUrl', 'approvedAt'])
+      );
+    }
+
+    match /devices/{deviceId} {
+      allow list: if isSignedIn();
+      allow get: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /commands/{commandId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().status == 'PENDING';
+      allow update: if (
+        // The server (which is our backend with admin privileges or this shared key) 
+        // updates status to SENT or EXECUTED.
+        isSignedIn()
+      );
+    }
+
+    match /accessLogs/{logId} {
+      allow list, get: if isSignedIn();
+      allow create: if true; // Devices send logs anonymously for now in our simple setup
+    }
+    
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Managed via console
+    }
+  }
+}
